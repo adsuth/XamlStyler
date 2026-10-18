@@ -3,13 +3,11 @@
 using System.Diagnostics.CodeAnalysis;
 using Xavalon.XamlStyler.DocumentManipulation;
 
-namespace Xavalon.XamlStyler.Options
-{
+namespace Xavalon.XamlStyler.Options {
     /// <summary>
     /// Options controls how Styler works.
     /// </summary>
-    public interface IStylerOptions
-    {
+    public interface IStylerOptions {
         #region Indentation
 
         int IndentSize { get; set; }
@@ -54,7 +52,7 @@ namespace Xavalon.XamlStyler.Options
         string[] AttributeOrderingRuleGroups { get; set; }
 
         bool OrderAttributesByName { get; set; }
-        
+
         bool IgnoreDesignTimeReferencePrefix { get; set; }
 
         #endregion Attribute Reordering
@@ -104,6 +102,8 @@ namespace Xavalon.XamlStyler.Options
         bool FormatOnSave { get; set; }
 
         bool SaveAndCloseOnFormat { get; set; }
+
+        bool ShowMessageBoxOnError { get; set; }
 
         int CommentSpaces { get; set; }
 

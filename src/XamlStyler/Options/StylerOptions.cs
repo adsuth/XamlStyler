@@ -9,15 +9,12 @@ using System.IO;
 using System.Reflection;
 using Xavalon.XamlStyler.DocumentManipulation;
 
-namespace Xavalon.XamlStyler.Options
-{
-    public class StylerOptions : IStylerOptions
-    {
+namespace Xavalon.XamlStyler.Options {
+    public class StylerOptions : IStylerOptions {
         private const string DefaultOptionsPath = "Xavalon.XamlStyler.Options.DefaultSettings.json";
         private const int FallbackIndentSize = 4;
 
-        public StylerOptions()
-        {
+        public StylerOptions() {
             this.InitializeProperties();
         }
 
@@ -25,10 +22,8 @@ namespace Xavalon.XamlStyler.Options
         /// Constructor that accepts an external configuration path before initializing settings.
         /// </summary>
         /// <param name="config">Path to external configuration file.</param>
-        public StylerOptions(string config = "")
-        {
-            if (!String.IsNullOrWhiteSpace(config) && File.Exists(config))
-            {
+        public StylerOptions(string config = "") {
+            if (!String.IsNullOrWhiteSpace(config) && File.Exists(config)) {
                 this.ConfigPath = config;
             }
 
@@ -282,6 +277,13 @@ namespace Xavalon.XamlStyler.Options
         public bool SaveAndCloseOnFormat { get; set; }
 
         [Category("Misc")]
+        [DisplayName("Show message box with details on format error?")]
+        [JsonProperty("ShowMessageBoxOnError", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        [Description("When set to true, XAML Styler will popup a message box with the error details when formatting fails.\r\n\r\nDefault Value: true")]
+        [DefaultValue(true)]
+        public bool ShowMessageBoxOnError { get; set; }
+
+        [Category("Misc")]
         [DisplayName("Comment padding")]
         [JsonProperty("CommentPadding", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         [Description("Determines the number of spaces a XAML comment should be padded with.\r\n\r\nDefault Value: 2")]
@@ -313,15 +315,12 @@ namespace Xavalon.XamlStyler.Options
         [Description("When set to true, all XAML Styler settings will be reset to their defaults.\r\n\r\nDefault Value: false")]
         [DefaultValue(false)]
         [JsonIgnore]
-        public bool ResetToDefault
-        {
+        public bool ResetToDefault {
             get => this.resetToDefault;
-            set
-            {
+            set {
                 this.resetToDefault = value;
 
-                if (this.resetToDefault)
-                {
+                if (this.resetToDefault) {
                     this.ConfigPath = String.Empty;
                     this.InitializeProperties();
                 }
@@ -336,15 +335,12 @@ namespace Xavalon.XamlStyler.Options
         [Description("Defines location of external XAML Styler configuration file. Specifying an external configuration file allows you to easily point multiple instances to a shared configuration. The configuration path can be local or network-based. Invalid configurations will be ignored.\r\n\r\nDefault Value: N/A")]
         [DefaultValue("")]
         [JsonIgnore]
-        public string ConfigPath
-        {
+        public string ConfigPath {
             get => this.configPath;
-            set
-            {
+            set {
                 this.configPath = value;
 
-                if (!String.IsNullOrEmpty(value))
-                {
+                if (!String.IsNullOrEmpty(value)) {
                     this.TryLoadExternalConfiguration();
                 }
             }
@@ -360,113 +356,90 @@ namespace Xavalon.XamlStyler.Options
         /// Creates a clone from the current instance.
         /// </summary>
         /// <returns>A clone from the current instance.</returns>
-        public IStylerOptions Clone()
-        {
+        public IStylerOptions Clone() {
             string jsonStylerOptions = JsonConvert.SerializeObject(this);
 
             return JsonConvert.DeserializeObject<StylerOptions>(jsonStylerOptions);
         }
 
-        private void InitializeProperties()
-        {
-            if (!this.TryLoadExternalConfiguration())
-            {
+        private void InitializeProperties() {
+            if (!this.TryLoadExternalConfiguration()) {
                 var assembly = Assembly.GetExecutingAssembly();
                 using (Stream stream = assembly.GetManifestResourceStream(StylerOptions.DefaultOptionsPath))
-                using (var reader = new StreamReader(stream))
-                {
+                using (var reader = new StreamReader(stream)) {
                     this.LoadConfiguration(reader.ReadToEnd());
                 }
             }
         }
 
-        private bool TryLoadExternalConfiguration()
-        {
+        private bool TryLoadExternalConfiguration() {
             return String.IsNullOrWhiteSpace(this.ConfigPath) || !File.Exists(this.ConfigPath)
                 ? false
                 : this.LoadConfiguration(File.ReadAllText(this.ConfigPath));
         }
 
-        private bool LoadConfiguration(string config)
-        {
-            try
-            {
+        private bool LoadConfiguration(string config) {
+            try {
                 StylerOptions configOptions = JsonConvert.DeserializeObject<StylerOptions>(config);
 
-                if (configOptions == null)
-                {
+                if (configOptions == null) {
                     this.LoadFallbackConfiguration();
                 }
-                else
-                {
-                    foreach (PropertyDescriptor propertyDescriptor in TypeDescriptor.GetProperties(this))
-                    {
+                else {
+                    foreach (PropertyDescriptor propertyDescriptor in TypeDescriptor.GetProperties(this)) {
                         // Cannot set Config Path from External Configuration.
-                        if (propertyDescriptor.Name.Equals(nameof(this.ConfigPath), StringComparison.Ordinal))
-                        {
+                        if (propertyDescriptor.Name.Equals(nameof(this.ConfigPath), StringComparison.Ordinal)) {
                             continue;
                         }
 
                         // If a valid IndentSize is specified in configuration, do not load VS settings.
-                        if (propertyDescriptor.Name.Equals(nameof(this.IndentSize), StringComparison.Ordinal))
-                        {
+                        if (propertyDescriptor.Name.Equals(nameof(this.IndentSize), StringComparison.Ordinal)) {
                             int indentSize;
-                            try
-                            {
+                            try {
                                 indentSize = Convert.ToInt32(propertyDescriptor.GetValue(configOptions), CultureInfo.InvariantCulture);
                             }
-                            catch (Exception)
-                            {
+                            catch (Exception) {
                                 indentSize = -1;
                             }
 
 
                             // Cannot specify MissingMemberHandling for a single property, so relying on JSON default
                             // value to detect missing member, and setting default on detection.
-                            if (indentSize > 0)
-                            {
+                            if (indentSize > 0) {
                                 this.IndentSize = indentSize;
                                 this.UseVisualStudioIndentSize = false;
                             }
-                            else
-                            {
+                            else {
                                 this.IndentSize = StylerOptions.FallbackIndentSize;
                             }
                         }
                         // If a valid IndentWithTabs is specified in configuration, do not load VS settings.
                         // If it is unspecified, it will be null.
                         else if (propertyDescriptor.Name.Equals(nameof(this.IndentWithTabs), StringComparison.Ordinal) &&
-                            propertyDescriptor.GetValue(configOptions) != null)
-                        {
+                            propertyDescriptor.GetValue(configOptions) != null) {
                             bool? indentWithTabs;
-                            try
-                            {
+                            try {
                                 indentWithTabs = Convert.ToBoolean(propertyDescriptor.GetValue(configOptions), CultureInfo.InvariantCulture);
                             }
-                            catch (Exception)
-                            {
+                            catch (Exception) {
                                 indentWithTabs = null;
                             }
 
-                            if (indentWithTabs == true)
-                            {
+                            if (indentWithTabs == true) {
                                 this.IndentWithTabs = true;
                                 this.UseVisualStudioIndentWithTabs = false;
                             }
-                            else
-                            {
+                            else {
                                 this.IndentWithTabs = indentWithTabs;
                             }
                         }
-                        else
-                        {
+                        else {
                             propertyDescriptor.SetValue(this, propertyDescriptor.GetValue(configOptions));
                         }
                     }
                 }
             }
-            catch (Exception)
-            {
+            catch (Exception) {
                 this.LoadFallbackConfiguration();
                 return false;
             }
@@ -474,14 +447,11 @@ namespace Xavalon.XamlStyler.Options
             return true;
         }
 
-        private void LoadFallbackConfiguration()
-        {
+        private void LoadFallbackConfiguration() {
             // Initialize all properties with "DefaultValueAttrbute" to their default value
-            foreach (PropertyDescriptor propertyDescriptor in TypeDescriptor.GetProperties(this))
-            {
+            foreach (PropertyDescriptor propertyDescriptor in TypeDescriptor.GetProperties(this)) {
                 // Set default value if DefaultValueAttribute is present
-                if (propertyDescriptor.Attributes[typeof(DefaultValueAttribute)] is DefaultValueAttribute attribute)
-                {
+                if (propertyDescriptor.Attributes[typeof(DefaultValueAttribute)] is DefaultValueAttribute attribute) {
                     propertyDescriptor.SetValue(this, attribute.Value);
                 }
             }
